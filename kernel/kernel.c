@@ -8,7 +8,8 @@ void kernel_main(void)
     clear();
     while (1) {
         write(">>");
-        input(buffer, sizeof(buffer));
+        input(buffer, 256);
         write(buffer);
+        write("\n");
     }
 }

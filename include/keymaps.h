@@ -5,6 +5,14 @@
 
 #ifndef KEYMAPS_H
 #define KEYMAPS_H
+#define MAJ (void *)1
+
+typedef struct {
+    char *normal;
+    char *shift;
+    char *altgr;
+} keymap_entry_t;
+
 static const char QWERTY_KEYMAP[] = {\
     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b', '\t',\
     'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',\
@@ -32,13 +40,15 @@ static const char QWERTY_KEYMAP[] = {\
     0,                         /* All other keys are undefined */\
 };
 
-static const char AZERTY_KEYMAP[] = {
-    0, 27, '&', 'e', '"', '\'', '(', '-', 'e', '_', 'c', 'a', ')', '=', '\b', '\t',
-    'a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '^', '$', '\n',
-    0, /* control */
-    'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'u', '*', 0, '<',
-    'w', 'x', 'c', 'v', 'b', 'n', '?', '.', '/', 0, '*', 0,
-    ' ', 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+static const keymap_entry_t EMPTY = {"", "", ""};
+static const keymap_entry_t AZERTY_KEYMAP[] = {
+    EMPTY, EMPTY, {"&", "1", ""}, {"é", "2", "~"}, {"\"", "3", "#"}, {"'", "4", "{"}, {"(", "5", "["}, {"-", "6", "|"}, {"è", "7", "`"}, {"_", "8", "\\"}, {"ç", "9", "^"}, {"à", "0", "@"}, {")", "°", "]"}, {"=", "+", "}"}, {"\b", "\b", "\b"}, {"\t", "\t", "\t"},
+    {"a", "A", ""}, {"z", "Z", ""}, {"e", "E", ""}, {"r", "R", ""}, {"t", "T", ""}, {"y", "Y", ""}, {"u", "U", ""}, {"i", "I", ""}, {"o", "O", ""}, {"p", "P", ""}, {"^", "¨", ""}, {"$", "£", ""}, {"\n", "\n", ""},
+    EMPTY,
+    {"q", "Q", ""}, {"s", "S", ""}, {"d", "D", ""}, {"f", "F", ""}, {"g", "G", ""}, {"h", "H", ""}, {"j", "J", ""}, {"k", "K", ""}, {"l", "L", ""}, {"m", "M", ""}, {"ù", "%", ""}, {"*", "µ", ""}, {MAJ, MAJ, ""}, {"<", ">", ""},
+    {"w", "W", ""}, {"x", "X", ""}, {"c", "C", ""}, {"v", "V", ""}, {"b", "B", ""}, {"n", "N", ""}, {",", "?", ""}, {";", ".", ""}, {":", "/", ""}, {"!", "§", ""}, {MAJ, MAJ, ""}, EMPTY, EMPTY,
+    {" ", " ", " "}, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
 };
 
 #endif // KEYMAPS_H

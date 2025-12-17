@@ -1,35 +1,77 @@
-#include "stdin.h"
 #include "keymaps.h"
+#include "stdin.h"
+#include "stdout.h"
 
-static inline unsigned char inb(unsigned short port) {
+static int MAJ_PRESSED = 0;
+
+static inline unsigned char get_next_scancode(unsigned short port)
+{
     unsigned char ret;
-    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
-static char get_scancode() {
-    // Wait until output buffer full
-    while (!(inb(KEYBOARD_STATUS) & 1));
-    return inb(KEYBOARD_DATA);
+static char *scancode_to_ascii(char scancode)
+{
+    if (MAJ_PRESSED)
+        return AZERTY_KEYMAP[(unsigned char)scancode].shift;
+    return AZERTY_KEYMAP[(unsigned char)scancode].normal;
 }
 
-char scancode_to_ascii(char scancode) {
-    if (scancode < 0 || scancode > 83) {
-        return 0; // Undefined scancode
+static void wait_for_keypress()
+{
+    while (!(get_next_scancode(KEYBOARD_STATUS) & 1));
+}
+
+static char *get_next_ascii()
+{
+    unsigned char scancode = 0;
+    wait_for_keypress();
+    while (1) {
+        scancode = get_next_scancode(KEYBOARD_DATA);
+        if (scancode >= 0x80 && MAJ_PRESSED && scancode_to_ascii(scancode - 0x80) == (char *)1) {
+            MAJ_PRESSED = 0;
+            continue;
+        }
+        if (scancode >= 0x80 || scancode == 0xE0 || scancode == 0xE1 ||
+            scancode == 0)
+            continue;
+        char *ascii = scancode_to_ascii(scancode);
+        if (ascii == (char *)1) {
+            MAJ_PRESSED = 1;
+            wait_for_keypress();
+            continue;
+        }
+        if (!ascii || !*ascii)
+            continue;
+        if (ascii > (char *)1)
+            return ascii;
     }
-    return AZERTY_KEYMAP[(unsigned char)scancode];
 }
 
-int input(char *buffer, int max_length) {
+int input(char *buffer, int max_length)
+{
     int index = 0;
 
-    for (; index < max_length - 1; index++) {
-        char scancode = get_scancode();
-        char ascii = scancode_to_ascii(scancode);
+    while (index < max_length - 1) {
+        char *ascii = get_next_ascii();
         if (ascii) {
-            buffer[index] = ascii;
-            if (ascii == '\n')
+            if (*ascii == '\b') {
+                if (index > 0) {
+                    index--;
+                    putchar('\b');
+                }
+                index--;
+                continue;
+            }
+            write(ascii);
+            if (*ascii == '\n')
                 break;
+            for (int i = 0; ascii[i] != '\0'; i++)
+                if (index >= max_length - 1)
+                    return index;
+                else
+                    buffer[index++] = ascii[i];
         }
     }
     buffer[index] = '\0';
