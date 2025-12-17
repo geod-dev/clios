@@ -1,9 +1,14 @@
-#include "clear.h"
-#include "write.h"
-#include "vga.h"
+#include "stdin.h"
+#include "stdout.h"
 
 void kernel_main(void)
 {
+    char buffer[256];
+
     clear();
-    write("Hello World!");
+    while (1) {
+        write(">>");
+        input(buffer, sizeof(buffer));
+        write(buffer);
+    }
 }

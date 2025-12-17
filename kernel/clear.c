@@ -1,5 +1,4 @@
-#include "clear.h"
-#include "vga.h"
+#include "stdout.h"
 
 void clear(void)
 {

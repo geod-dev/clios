@@ -1,5 +1,4 @@
-#include "write.h"
-#include "vga.h"
+#include "stdout.h"
 
 void write(const char *str)
 {
