@@ -1,7 +1,7 @@
 CC = clang
-CFLAGS = -ffreestanding -O2 -Wall -Wextra
-LD = ld
-AS = as --64
+CFLAGS = -fno-pic -m32 -ffreestanding -nostdlib -nostdinc -O2 -Wall -Wextra -Werror -mno-red-zone
+LD = ld -m elf_i386
+AS = as --32
 RM = rm -f
 
 BUILD = build
@@ -9,8 +9,9 @@ BUILD = build
 BOOT_SRC = arch/x86_64/boot.s
 BOOT_OBJ = $(BUILD)/boot.o
 
-KERNEL_SRC = kernel/kernel.c
-KERNEL_OBJ = $(BUILD)/kernel.o
+KERNEL_SRC = ${wildcard kernel/*.c}
+KERNEL_OBJ = $(patsubst kernel/%.c,$(BUILD)/%.o,$(KERNEL_SRC))
+KERNEL_INC = -Iinclude
 
 LINKER_SCRIPT = linker/linker.ld
 OUTPUT_BIN = $(BUILD)/cli_os.bin
@@ -26,8 +27,8 @@ $(BUILD):
 $(BOOT_OBJ): $(BOOT_SRC) | $(BUILD)
 	$(AS) $(BOOT_SRC) -o $(BOOT_OBJ)
 
-$(KERNEL_OBJ): $(KERNEL_SRC) | $(BUILD)
-	$(CC) $(CFLAGS) -c $(KERNEL_SRC) -o $(KERNEL_OBJ)
+$(BUILD)/%.o: kernel/%.c | $(BUILD)
+	$(CC) $(CFLAGS) $(KERNEL_INC) -c $< -o $@
 
 $(OUTPUT_BIN): $(BOOT_OBJ) $(KERNEL_OBJ)
 	$(LD) -T $(LINKER_SCRIPT) -o $(OUTPUT_BIN) $(BOOT_OBJ) $(KERNEL_OBJ)
