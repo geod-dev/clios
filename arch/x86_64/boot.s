@@ -16,10 +16,19 @@ multiboot_header:
 
 header_end:
 
+# Set up a stack
+.section .bss
+.align 16
+stack_bottom:
+    .skip 16384 # 16 Ko stack
+stack_top:
+
 .section .text
 .global _start  
 _start:
+    mov $stack_top, %esp # Initialize stack pointer
     cli
+    call gdt_install
     call kernel_main
 hang:
     hlt

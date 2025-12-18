@@ -1,4 +1,4 @@
-CC = clang
+CC = gcc
 CFLAGS = -fno-pic -m32 -ffreestanding -nostdlib -nostdinc -O2 -Wall -Wextra -Werror -mno-red-zone
 LD = ld -m elf_i386
 AS = as --32
@@ -6,11 +6,12 @@ RM = rm -f
 
 BUILD = build
 
-BOOT_SRC = arch/x86_64/boot.s
-BOOT_OBJ = $(BUILD)/boot.o
+ASM_SRC = $(shell find arch -name '*.s')
+ASM_OBJ = $(patsubst arch/%.s,$(BUILD)/arch/%.o,$(filter arch/%,$(ASM_SRC)))
 
-KERNEL_SRC := $(shell find kernel -name '*.c')
-KERNEL_OBJ := $(patsubst kernel/%.c,$(BUILD)/%.o,$(KERNEL_SRC))
+C_SRC := $(shell find kernel -name '*.c') $(shell find arch -name '*.c')
+C_OBJ := $(patsubst kernel/%.c,$(BUILD)/kernel/%.o,$(filter kernel/%,$(C_SRC))) \
+			  $(patsubst arch/%.c,$(BUILD)/arch/%.o,$(filter arch/%,$(C_SRC)))
 KERNEL_INC = -Iinclude
 
 LINKER_SCRIPT = linker/linker.ld
@@ -24,15 +25,16 @@ all: main
 $(BUILD):
 	mkdir -p $(BUILD)
 
-$(BOOT_OBJ): $(BOOT_SRC) | $(BUILD)
-	$(AS) $(BOOT_SRC) -o $(BOOT_OBJ)
-
-$(BUILD)/%.o: kernel/%.c
+$(BUILD)/%.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(KERNEL_INC) -c $< -o $@
 
-$(OUTPUT_BIN): $(BOOT_OBJ) $(KERNEL_OBJ)
-	$(LD) -T $(LINKER_SCRIPT) -o $(OUTPUT_BIN) $(BOOT_OBJ) $(KERNEL_OBJ)
+$(BUILD)/%.o: %.s
+	mkdir -p $(dir $@)
+	$(AS) $< -o $@
+
+$(OUTPUT_BIN): $(ASM_OBJ) $(C_OBJ)
+	$(LD) -T $(LINKER_SCRIPT) -o $(OUTPUT_BIN) $(ASM_OBJ) $(C_OBJ)
 
 $(ISO_OBJ): $(OUTPUT_BIN) | $(BUILD)
 	cp $(OUTPUT_BIN) $(GRUB_BIN)
@@ -44,7 +46,7 @@ run: $(ISO_OBJ)
 	qemu-system-x86_64 -cdrom $(ISO_OBJ) -display gtk -serial stdio
 
 clean:
-	$(RM) $(BOOT_OBJ) $(KERNEL_OBJ) $(OUTPUT_BIN) $(GRUB_BIN)
+	$(RM) $(ASM_OBJ) $(C_OBJ) $(OUTPUT_BIN) $(GRUB_BIN)
 
 fclean: clean
 	$(RM) $(ISO_OBJ)
