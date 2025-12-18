@@ -61,7 +61,6 @@ int input(char *buffer, int max_length)
                     index--;
                     putchar('\b');
                 }
-                index--;
                 continue;
             }
             write(ascii);
@@ -69,7 +68,7 @@ int input(char *buffer, int max_length)
                 break;
             for (int i = 0; ascii[i] != '\0'; i++)
                 if (index >= max_length - 1)
-                    return index;
+                    break;
                 else
                     buffer[index++] = ascii[i];
         }

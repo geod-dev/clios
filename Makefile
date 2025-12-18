@@ -9,8 +9,8 @@ BUILD = build
 BOOT_SRC = arch/x86_64/boot.s
 BOOT_OBJ = $(BUILD)/boot.o
 
-KERNEL_SRC = ${wildcard kernel/*.c}
-KERNEL_OBJ = $(patsubst kernel/%.c,$(BUILD)/%.o,$(KERNEL_SRC))
+KERNEL_SRC := $(shell find kernel -name '*.c')
+KERNEL_OBJ := $(patsubst kernel/%.c,$(BUILD)/%.o,$(KERNEL_SRC))
 KERNEL_INC = -Iinclude
 
 LINKER_SCRIPT = linker/linker.ld
@@ -27,7 +27,8 @@ $(BUILD):
 $(BOOT_OBJ): $(BOOT_SRC) | $(BUILD)
 	$(AS) $(BOOT_SRC) -o $(BOOT_OBJ)
 
-$(BUILD)/%.o: kernel/%.c | $(BUILD)
+$(BUILD)/%.o: kernel/%.c
+	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(KERNEL_INC) -c $< -o $@
 
 $(OUTPUT_BIN): $(BOOT_OBJ) $(KERNEL_OBJ)
