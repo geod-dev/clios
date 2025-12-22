@@ -59,3 +59,9 @@ void gdt_install()
 
     gdt_flush((uint32_t)&gdt_descriptor);
 }
+
+void gdt_enable_long_mode()
+{
+    gdt[1].granularity &= 0xBF; // disable 32-bit protected mode
+    gdt[1].granularity |= 0x20; // enable 64-bit long mode
+}

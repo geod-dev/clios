@@ -29,7 +29,18 @@ _start:
     mov $stack_top, %esp # Initialize stack pointer
     cli
     call gdt_install
-    call kernel_main
-hang:
+    mov $0xB8000, %edi
+    mov $'A', %al
+    mov $0x07, %ah
+    stosw
+    call enable_long_mode
+    mov $0xB8000, %edi
+    mov $'B', %al
+    mov $0x07, %ah
+    stosw
+
+    jmp halt_end
+
+halt_end:
     hlt
-    jmp hang
+    jmp halt_end
