@@ -1,56 +1,66 @@
 CC = gcc
-CFLAGS = -fno-pic -m32 -ffreestanding -nostdlib -nostdinc -O2 -Wall -Wextra -Werror -mno-red-zone
-LD = ld -m elf_i386
-AS = as --32
-RM = rm -f
+LD = ld
+AS = as
+RM = rm -rf
 
 BUILD = build
+ISO_DIR = iso
 
-ASM_SRC = $(shell find arch -name '*.s')
-ASM_OBJ = $(patsubst arch/%.s,$(BUILD)/arch/%.o,$(filter arch/%,$(ASM_SRC)))
+KERNEL_SRC = $(shell find kernel -name '*.c')
+KERNEL_OBJ = $(patsubst kernel/%.c,$(BUILD)/kernel/%.o,$(KERNEL_SRC))
+KERNEL_CFLAGS = -m64 -fno-pic -ffreestanding -nostdlib -mno-red-zone -Wall -Wextra -Werror -Iinclude
+KERNEL_LDFLAGS = -m elf_x86_64 --oformat binary -T linker/linker64.ld
+KERNEL_BIN = $(BUILD)/kernel.bin
 
-C_SRC := $(shell find kernel -name '*.c') $(shell find arch -name '*.c')
-C_OBJ := $(patsubst kernel/%.c,$(BUILD)/kernel/%.o,$(filter kernel/%,$(C_SRC))) \
-			  $(patsubst arch/%.c,$(BUILD)/arch/%.o,$(filter arch/%,$(C_SRC)))
-KERNEL_INC = -Iinclude
+ARCH_C_SRC = $(shell find arch -name '*.c')
+ARCH_S_SRC = $(shell find arch -name '*.s')
+ARCH_C_OBJ = $(patsubst arch/%.c,$(BUILD)/arch/%.o,$(ARCH_C_SRC))
+ARCH_S_OBJ = $(patsubst arch/%.s,$(BUILD)/arch/%.o,$(ARCH_S_SRC))
 
-LINKER_SCRIPT = linker/linker.ld
-OUTPUT_BIN = $(BUILD)/cli_os.bin
+ARCH_CFLAGS = -m32 -fno-pic -ffreestanding -nostdlib -Wall -Wextra
+ARCH_ASFLAGS = --32
+ARCH_LDFLAGS = -m elf_i386 -T linker/linker32.ld
 
-GRUB_BIN = iso/boot/cli_os.bin
-ISO_OBJ = $(BUILD)/cli_os.iso
+FINAL_BIN = $(BUILD)/os_image.bin
+ISO_IMAGE = $(BUILD)/os_image.iso
 
-all: main
+all: $(ISO_IMAGE)
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
-$(BUILD)/%.o: %.c
+$(BUILD)/kernel/%.o: kernel/%.c | $(BUILD)
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(KERNEL_INC) -c $< -o $@
+	$(CC) $(KERNEL_CFLAGS) -c $< -o $@
 
-$(BUILD)/%.o: %.s
+$(KERNEL_BIN): $(KERNEL_OBJ)
+	$(LD) $(KERNEL_LDFLAGS) -o $@ $^
+
+$(BUILD)/arch/%.o: arch/%.s $(KERNEL_BIN) | $(BUILD)
 	mkdir -p $(dir $@)
-	$(AS) $< -o $@
+	$(AS) $(ARCH_ASFLAGS) $< -o $@
 
-$(OUTPUT_BIN): $(ASM_OBJ) $(C_OBJ)
-	$(LD) -T $(LINKER_SCRIPT) -o $(OUTPUT_BIN) $(ASM_OBJ) $(C_OBJ)
+$(BUILD)/arch/%.o: arch/%.c | $(BUILD)
+	mkdir -p $(dir $@)
+	$(CC) $(ARCH_CFLAGS) -c $< -o $@
 
-$(ISO_OBJ): $(OUTPUT_BIN) | $(BUILD)
-	cp $(OUTPUT_BIN) $(GRUB_BIN)
-	grub-mkrescue -o $(ISO_OBJ) iso/
+$(FINAL_BIN): $(ARCH_S_OBJ) $(ARCH_C_OBJ)
+	$(LD) $(ARCH_LDFLAGS) -o $@ $(ARCH_S_OBJ) $(ARCH_C_OBJ)
 
-main: $(ISO_OBJ)
+$(ISO_IMAGE): $(FINAL_BIN)
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp $(FINAL_BIN) $(ISO_DIR)/boot/cli_os.bin
+	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
 
-run: $(ISO_OBJ)
-	qemu-system-x86_64 -cdrom $(ISO_OBJ) -display gtk -serial stdio
+run: $(ISO_IMAGE)
+	qemu-system-x86_64 -cdrom $(ISO_IMAGE) -display gtk -serial stdio
 
 clean:
-	$(RM) $(ASM_OBJ) $(C_OBJ) $(OUTPUT_BIN) $(GRUB_BIN)
+	$(RM) $(BUILD)
 
 fclean: clean
-	$(RM) $(ISO_OBJ)
+	$(RM) $(ISO_IMAGE)
 
-re: fclean main
+re: fclean all
 
-.PHONY: all main clean fclean re boot kernel link
+.PHONY: all run clean fclean re
